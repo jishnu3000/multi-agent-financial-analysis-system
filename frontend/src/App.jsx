@@ -103,15 +103,8 @@ function App() {
                 </svg>
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-white">FinCrew</h1>
-                <p className="text-sm text-slate-300">
-                  AI-Powered Stock Analysis
-                </p>
+                <h1 className="text-3xl font-bold text-white">Multi-Agent Stock Analysis</h1>
               </div>
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-slate-400">Multi-Agent System</p>
-              <p className="text-xs text-slate-500">Powered by Gemini 2.0</p>
             </div>
           </div>
         </div>
@@ -421,7 +414,7 @@ function App() {
       <footer className="bg-slate-800/50 backdrop-blur-sm border-t border-slate-700 mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <p className="text-center text-slate-400 text-sm">
-            FinCrew © 2026 | Multi-Agent Financial Analysis System | Powered by
+            Multi Agent Stock Analysis © 2026 | Powered by
             LangGraph & Gemini 2.0
           </p>
         </div>
