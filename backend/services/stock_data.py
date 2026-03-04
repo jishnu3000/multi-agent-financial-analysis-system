@@ -109,7 +109,7 @@ def fetch_fundamentals(ticker: str) -> Dict[str, Any]:
             "52w_high": info.get("fiftyTwoWeekHigh"),
             "52w_low": info.get("fiftyTwoWeekLow"),
             "avg_volume": info.get("averageVolume"),
-            "description": info.get("longBusinessSummary", "")[:500],
+            "description": info.get("longBusinessSummary", "")[:800],
         }
     except ValueError:
         raise
