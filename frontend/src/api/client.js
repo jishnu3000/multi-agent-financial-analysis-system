@@ -107,6 +107,14 @@ export async function fetchHistory() {
   return request("/history");
 }
 
+/**
+ * Delete a single history entry.
+ * @param {string} id  The ``_id`` of the history document.
+ */
+export async function deleteHistoryItem(id) {
+  return request(`/history/${id}`, { method: "DELETE" });
+}
+
 /* ==================== PDF DOWNLOAD ==================== */
 
 /** Open the PDF in a new tab. */
