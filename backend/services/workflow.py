@@ -42,30 +42,65 @@ def researcher_agent(state: AgentState) -> AgentState:
         state["news_articles"] = news
 
         current_price = stock_data.get('current_price') or 0
+        prev_close = stock_data.get('previous_close') or 0
         price_change = stock_data.get('price_change') or 0
         price_change_pct = stock_data.get('price_change_pct') or 0
         low_52w = stock_data.get('low_52w') or 0
         high_52w = stock_data.get('high_52w') or 0
-        news_headlines = chr(10).join(
-            [f"- {a['title']}" for a in (news or [])[:3]]) or 'No news available'
+        volume = stock_data.get('volume') or 0
+
+        mkt_cap = fundamentals.get('market_cap')
+        pe = fundamentals.get('pe_ratio')
+        fwd_pe = fundamentals.get('forward_pe')
+        pb = fundamentals.get('price_to_book')
+        div_yield = fundamentals.get('dividend_yield')
+        beta = fundamentals.get('beta')
+        avg_vol = fundamentals.get('avg_volume')
+        description = fundamentals.get('description', '')
+
+        def _f(v, fmt='.2f', prefix='', suffix=''):
+            return f"{prefix}{v:{fmt}}{suffix}" if v is not None else 'N/A'
+
+        mkt_cap_str = (
+            f"${mkt_cap / 1e9:.2f}B" if mkt_cap and mkt_cap >= 1e9
+            else f"${mkt_cap / 1e6:.2f}M" if mkt_cap and mkt_cap >= 1e6
+            else _f(mkt_cap, ',.0f', '$')
+        )
+        div_str = f"{div_yield * 100:.2f}%" if div_yield else 'N/A'
+        vol_str = f"{volume:,}" if volume else 'N/A'
+        avg_vol_str = f"{avg_vol:,}" if avg_vol else 'N/A'
+        sign = '+' if price_change >= 0 else ''
+
+        news_with_snippets = chr(10).join(
+            [f"- {a['title']}: {a.get('snippet', '')}" for a in (news or [])[:5]]
+        ) or 'No news available'
 
         state["research_summary"] = f"""
-## Research Data Collected for {ticker}
+## Research Data for {ticker} — {fundamentals.get('company_name', ticker)}
 
-**Company:** {fundamentals.get('company_name', ticker)}
 **Sector:** {fundamentals.get('sector', 'N/A')} | **Industry:** {fundamentals.get('industry', 'N/A')}
 
-**Current Price:** ${current_price:.2f}
-**Price Change:** ${price_change:.2f} ({price_change_pct:.2f}%)
-**52-Week Range:** ${low_52w:.2f} – ${high_52w:.2f}
+**Business Description:** {description or 'N/A'}
 
-**Fundamentals:**
-- Market Cap: {f"${fundamentals['market_cap']:,}" if fundamentals.get('market_cap') else 'N/A'}
-- P/E Ratio: {f"{fundamentals['pe_ratio']:.2f}" if fundamentals.get('pe_ratio') else 'N/A'}
-- Beta: {f"{fundamentals['beta']:.2f}" if fundamentals.get('beta') else 'N/A'}
+### Price Data
+- Current Price:    ${current_price:.2f}
+- Previous Close:   ${prev_close:.2f}
+- Price Change:     {sign}${price_change:.2f} ({sign}{price_change_pct:.2f}%)
+- 52-Week High:     ${high_52w:.2f}
+- 52-Week Low:      ${low_52w:.2f}
+- Today's Volume:   {vol_str}
+- Average Volume:   {avg_vol_str}
 
-**Recent News Headlines:**
-{news_headlines}
+### Fundamental Metrics
+- Market Cap:       {mkt_cap_str}
+- Trailing P/E:     {_f(pe)}
+- Forward P/E:      {_f(fwd_pe)}
+- Price/Book:       {_f(pb)}
+- Dividend Yield:   {div_str}
+- Beta:             {_f(beta)}
+
+### Recent News
+{news_with_snippets}
 """.strip()
 
         state["messages"].append(
@@ -103,22 +138,31 @@ def analyst_agent(state: AgentState) -> AgentState:
         technical = calculate_technical_indicators(state["stock_price_data"])
         state["technical_analysis"] = technical
 
-        sma = f"${technical['sma_50']:.2f}" if technical["sma_50"] else "Insufficient data"
-        rsi = f"{technical['rsi_14']:.2f}" if technical["rsi_14"] else "Insufficient data"
+        sma = f"${technical['sma_50']:.2f}" if technical['sma_50'] else 'Insufficient data'
+        rsi = f"{technical['rsi_14']:.2f}" if technical['rsi_14'] else 'Insufficient data'
+        price = state['stock_price_data'].get('current_price', 0)
+
+        vs_sma = ''
+        if technical['sma_50'] and price:
+            diff = ((price / technical['sma_50']) - 1) * 100
+            sign = '+' if diff >= 0 else ''
+            vs_sma = f" (price is {sign}{diff:.2f}% vs SMA)"
 
         state["analyst_summary"] = f"""
-## Technical Analysis
+## Technical Analysis for {state['ticker']}
 
-**Trend Analysis:**
-- 50-Day SMA: {sma}
-- Current Trend: {technical['trend']} (Strength: {technical['trend_strength']:.2f}%)
+### Trend
+- 50-Day SMA:        {sma}{vs_sma}
+- Trend Direction:   {technical['trend']}
+- Trend Strength:    {technical['trend_strength']:.2f}%
 
-**Momentum Indicators:**
-- RSI (14): {rsi} – {technical['rsi_signal']}
+### Momentum
+- RSI (14):          {rsi}
+- RSI Signal:        {technical['rsi_signal']}
 
-**Support / Resistance:**
-- Support Level: ${technical['support_level']:.2f}
-- Resistance Level: ${technical['resistance_level']:.2f}
+### Key Levels
+- Support Level:     ${technical['support_level']:.2f}
+- Resistance Level:  ${technical['resistance_level']:.2f}
 """.strip()
 
         state["messages"].append(
@@ -152,18 +196,90 @@ def team_lead_agent(state: AgentState) -> AgentState:
         "analyst_summary") or "No technical analysis available"
 
     try:
-        prompt = f"""You are a senior financial analyst creating a comprehensive stock analysis report.
+        # Build an explicit flat data block so the LLM cannot claim data is missing
+        stock_data = state.get('stock_price_data') or {}
+        fundamentals_data = state.get('fundamentals') or {}
+        technical_data = state.get('technical_analysis') or {}
 
-Based on the following data, create a professional, well-structured markdown report for {ticker}:
+        price = stock_data.get('current_price')
+        prev_close = stock_data.get('previous_close')
+        chg = stock_data.get('price_change', 0) or 0
+        chg_pct = stock_data.get('price_change_pct', 0) or 0
+        high_52w = stock_data.get('high_52w')
+        low_52w = stock_data.get('low_52w')
+        volume = stock_data.get('volume')
+        mkt_cap = fundamentals_data.get('market_cap')
+        pe = fundamentals_data.get('pe_ratio')
+        fwd_pe = fundamentals_data.get('forward_pe')
+        pb = fundamentals_data.get('price_to_book')
+        div_yield = fundamentals_data.get('dividend_yield')
+        beta_val = fundamentals_data.get('beta')
+        avg_vol = fundamentals_data.get('avg_volume')
+        sma50 = technical_data.get('sma_50')
+        rsi14 = technical_data.get('rsi_14')
+        trend = technical_data.get('trend', 'N/A')
+        t_str = technical_data.get('trend_strength', 0)
+        rsi_sig = technical_data.get('rsi_signal', 'N/A')
+        support = technical_data.get('support_level')
+        resistance = technical_data.get('resistance_level')
 
+        def fv(v, fmt='.2f', pre='', suf=''):
+            return f"{pre}{v:{fmt}}{suf}" if v is not None else 'N/A'
+
+        mkt_cap_str = (
+            f"${mkt_cap / 1e9:.2f}B" if mkt_cap and mkt_cap >= 1e9
+            else f"${mkt_cap / 1e6:.2f}M" if mkt_cap and mkt_cap >= 1e6
+            else fv(mkt_cap, ',.0f', '$')
+        )
+        sign = '+' if chg >= 0 else ''
+
+        data_block = f"""
+=== VERIFIED MARKET DATA FOR {ticker} ===
+Company:          {fundamentals_data.get('company_name', ticker)}
+Sector:           {fundamentals_data.get('sector', 'N/A')}
+Industry:         {fundamentals_data.get('industry', 'N/A')}
+
+--- Price ---
+Current Price:    {fv(price, '.2f', '$')}
+Previous Close:   {fv(prev_close, '.2f', '$')}
+Price Change:     {sign}{fv(chg, '.2f', '$')} ({sign}{fv(chg_pct, '.2f', suf='%')})
+52-Week High:     {fv(high_52w, '.2f', '$')}
+52-Week Low:      {fv(low_52w, '.2f', '$')}
+Volume:           {f"{int(volume):,}" if volume else 'N/A'}
+Avg Volume:       {f"{int(avg_vol):,}" if avg_vol else 'N/A'}
+
+--- Fundamentals ---
+Market Cap:       {mkt_cap_str}
+Trailing P/E:     {fv(pe)}
+Forward P/E:      {fv(fwd_pe)}
+Price/Book:       {fv(pb)}
+Dividend Yield:   {f"{div_yield*100:.2f}%" if div_yield else 'N/A'}
+Beta:             {fv(beta_val)}
+
+--- Technical ---
+50-Day SMA:       {fv(sma50, '.2f', '$')}
+RSI (14):         {fv(rsi14)} — {rsi_sig}
+Trend:            {trend} ({fv(t_str)}% strength)
+Support:          {fv(support, '.2f', '$')}
+Resistance:       {fv(resistance, '.2f', '$')}
+
+--- Recent News ---
+{chr(10).join([f"  • {a['title']}: {a.get('snippet', '')}" for a in news[:5]]) or 'No news available'}
+========================================
+""".strip()
+
+        prompt = f"""You are a senior financial analyst. Write a comprehensive, professional stock analysis report for {ticker}.
+
+ALL of the data below has been verified and collected. You MUST reference these exact numbers throughout your report — do NOT say data is unavailable or missing.
+
+{data_block}
+
+Additional context:
 {research_summary}
 
 {analyst_summary}
 
-News Articles:
-{chr(10).join([f"- {a['title']}: {a['snippet']}" for a in news[:5]])}
-
-Create a report with these sections:
+Write a report with these exact sections (use ## for headings):
 1. Executive Summary
 2. Company Overview
 3. Price Performance & Fundamentals
@@ -172,7 +288,13 @@ Create a report with these sections:
 6. Risk Factors
 7. Conclusion
 
-Be objective, data-driven, and professional. Use the actual numbers provided."""
+Rules:
+- Every section MUST include the specific numbers from the data block above.
+- Section 3 must state the current price, 52-week range, volume, P/E, market cap, and other fundamentals explicitly.
+- Section 4 must state the RSI value, SMA-50 value, trend direction, support and resistance levels explicitly.
+- Section 5 must reference the actual news headlines provided.
+- Do NOT write placeholder text or say any data is missing — it is all provided above.
+- Be concise, factual, and data-driven."""
 
         response = llm.invoke(
             [
