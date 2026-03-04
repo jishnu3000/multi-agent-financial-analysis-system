@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { fetchHistory } from "../api/client";
+import { fetchHistory, deleteHistoryItem } from "../api/client";
 import HistoryPanel from "../components/HistoryPanel";
 
 export default function HistoryPage() {
@@ -43,7 +43,15 @@ export default function HistoryPage() {
           )}
         </div>
 
-        <HistoryPanel items={items} loading={loading} error={error} />
+        <HistoryPanel
+          items={items}
+          loading={loading}
+          error={error}
+          onDelete={async (id) => {
+            await deleteHistoryItem(id);
+            setItems((prev) => prev.filter((item) => item._id !== id));
+          }}
+        />
       </div>
     </main>
   );
