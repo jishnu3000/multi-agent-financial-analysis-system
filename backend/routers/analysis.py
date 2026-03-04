@@ -97,7 +97,9 @@ async def analyze_stock(
             pdf_path = generate_pdf_report(
                 ticker,
                 final_state.get("final_report", ""),
-                final_state.get("stock_price_data", {}),
+                final_state.get("stock_price_data") or {},
+                final_state.get("fundamentals") or {},
+                final_state.get("technical_analysis") or {},
             )
         except Exception as e:
             pdf_status = f"Failed: {e}"
@@ -150,6 +152,39 @@ async def get_history(current_user: dict = Depends(get_current_user)):
     for item in history:
         item["_id"] = str(item["_id"])
     return history
+
+
+@router.delete("/history/{item_id}")
+async def delete_history_item(
+    item_id: str,
+    current_user: dict = Depends(get_current_user),
+):
+    """Delete a single history entry belonging to the authenticated user.
+
+    Args:
+        item_id:      The ``_id`` string of the history document.
+        current_user: Injected by :func:`~core.security.get_current_user`.
+
+    Returns:
+        ``{"message": "Deleted"}`` on success.
+
+    Raises:
+        HTTPException(404): If the document is not found or does not belong to this user.
+    """
+    from bson import ObjectId
+
+    try:
+        oid = ObjectId(item_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid history item ID")
+
+    result = history_collection.delete_one(
+        {"_id": oid, "user_id": str(current_user["_id"])}
+    )
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="History item not found")
+
+    return {"message": "Deleted"}
 
 
 @router.get("/download/{filename:path}")
