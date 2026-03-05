@@ -16,10 +16,7 @@ class Settings:
     GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "")
 
     # MongoDB
-    MONGODB_URL: str = os.getenv(
-        "MONGODB_URL",
-        "mongodb+srv://jishnu455:<db_password>@cluster0.npr7jys.mongodb.net/?appName=Cluster0",
-    )
+    MONGODB_URL: str = os.getenv("MONGODB_URL")
 
     # JWT
     JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "fallback_secret_key")
