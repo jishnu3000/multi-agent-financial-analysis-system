@@ -3,7 +3,7 @@
  * Every request automatically attaches the stored JWT bearer token.
  */
 
-const API_URL = "http://localhost:8000";
+const API_URL = import.meta.env.VITE_API_URL;
 
 /** Retrieve the token from localStorage (set by AuthContext on login). */
 const getToken = () => localStorage.getItem("token");
