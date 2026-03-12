@@ -306,17 +306,30 @@ Rules:
         state["messages"].append(AIMessage(content="Final report generated"))
 
     except Exception as e:
-        errors.append(f"Team Lead Agent Error: {e}")
+        error_str = str(e)
+
+        if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
+            friendly_error = (
+                "**AI Service Temporarily Unavailable:** The free-tier AI quota has been "
+                "exhausted due to high usage. Please wait approximately 1 minute and try again."
+            )
+        else:
+            friendly_error = f"An unexpected error occurred while generating the report: {error_str}"
+
+        errors.append(friendly_error)
         state["errors"] = errors
         state["final_report"] = (
             f"# Stock Analysis Report: {ticker}\n\n"
-            f"## Error Notice\nAn error occurred: {e}\n\n"
-            f"## Available Data\n"
-            f"{state.get('research_summary') or 'N/A'}\n"
+            f"## Report Generation Paused\n\n"
+            f"{friendly_error}\n\n"
+            f"---\n\n"
+            f"## Raw Data (Retrieved Successfully)\n\n"
+            f"*The following data was collected before the error occurred:*\n\n"
+            f"{state.get('research_summary') or 'N/A'}\n\n"
             f"{state.get('analyst_summary') or 'N/A'}"
         )
         state["messages"].append(
-            AIMessage(content="Fallback report generated"))
+            AIMessage(content="Fallback report generated due to LLM error"))
 
     return state
 
