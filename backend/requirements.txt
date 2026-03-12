@@ -12,7 +12,8 @@ langchain-google-genai>=2.0.0
 google-generativeai>=0.8.0
 
 # Data & Tools
-yfinance>=0.2.35
+yfinance>=1.1.0
+curl-cffi>=0.6.0
 pandas>=2.0.0
 numpy>=1.24.0
 
