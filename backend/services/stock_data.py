@@ -10,7 +10,20 @@ Functions:
 from typing import Any, Dict, List
 
 import yfinance as yf
+from curl_cffi import requests as curl_requests
 from ddgs import DDGS
+
+
+def _yf_session() -> curl_requests.Session:
+    """Return a curl_cffi Session that impersonates Chrome.
+
+    yfinance 1.x requires a curl_cffi session (not a plain requests.Session).
+    Passing an explicit Chrome-impersonating session ensures the TLS
+    fingerprint and headers match a real browser, which is necessary to
+    bypass Yahoo Finance's bot-detection both locally and on cloud hosts
+    (Render, Railway, etc.) that share IP ranges with known scrapers.
+    """
+    return curl_requests.Session(impersonate="chrome124")
 
 
 def fetch_stock_data(ticker: str, period: str = "6mo") -> Dict[str, Any]:
@@ -30,7 +43,7 @@ def fetch_stock_data(ticker: str, period: str = "6mo") -> Dict[str, Any]:
         Exception:  For any other network or parsing error.
     """
     try:
-        stock = yf.Ticker(ticker)
+        stock = yf.Ticker(ticker, session=_yf_session())
         hist = stock.history(period=period)
 
         if hist.empty:
@@ -88,7 +101,7 @@ def fetch_fundamentals(ticker: str) -> Dict[str, Any]:
         Exception:  For any other error.
     """
     try:
-        stock = yf.Ticker(ticker)
+        stock = yf.Ticker(ticker, session=_yf_session())
         info = stock.info
 
         if not info or len(info) < 3:
