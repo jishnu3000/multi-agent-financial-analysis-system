@@ -61,20 +61,30 @@ def fetch_stock_data(ticker: str, period: str = "6mo") -> Dict[str, Any]:
         Exception:  For any other network or parsing error.
     """
     try:
-        stock = yf.Ticker(ticker, session=_yf_session())
-        hist = _with_retry(lambda: stock.history(period=period))
+        session = _yf_session()
+        stock = yf.Ticker(ticker, session=session)
 
-        if hist.empty:
+        # yfinance can return an empty DataFrame silently (no exception) when
+        # Yahoo Finance rate-limits the request, so we retry on empty hist too.
+        hist = None
+        for attempt in range(3):
+            hist = stock.history(period=period)
+            if not hist.empty:
+                break
+            if attempt < 2:
+                time.sleep(5 * (2 ** attempt))  # 5 s, 10 s
+
+        if hist is None or hist.empty:
             raise ValueError(
                 f"Invalid ticker symbol '{ticker}'. Please check the ticker and try again."
             )
 
-        info = _with_retry(lambda: stock.info) or {}
-        # hist.empty is the reliable validity signal; info can be sparse in newer yfinance
-        if not info or len(info) < 3:
-            raise ValueError(
-                f"Invalid ticker symbol '{ticker}'. Please check the ticker and try again."
-            )
+        # info can be sparse in newer yfinance — don't use it for validity.
+        # hist.empty is the only reliable signal for an invalid ticker.
+        try:
+            info = _with_retry(lambda: stock.info) or {}
+        except Exception:
+            info = {}
 
         return {
             "ticker": ticker,
@@ -120,9 +130,10 @@ def fetch_fundamentals(ticker: str) -> Dict[str, Any]:
     """
     try:
         stock = yf.Ticker(ticker, session=_yf_session())
-        info = _with_retry(lambda: stock.info)
+        info = _with_retry(lambda: stock.info) or {}
 
-        if not info or len(info) < 3:
+        # An empty dict means truly invalid ticker; sparse dict is fine (newer yfinance)
+        if not info:
             raise ValueError(
                 f"Invalid ticker symbol '{ticker}'. Please check the ticker and try again."
             )
