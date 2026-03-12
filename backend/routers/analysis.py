@@ -71,6 +71,18 @@ async def analyze_stock(
                 detail=f"Analysis failed: {'; '.join(final_state['errors'])}",
             )
 
+        # Detect silent data-fetch failure: researcher errors ran but left
+        # stock_price_data empty, producing an N/A-filled LLM report.
+        if final_state.get("stock_price_data") is None and final_state.get("errors"):
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "Unable to fetch market data for "
+                    f"'{ticker}'. "
+                    f"Detail: {'; '.join(final_state['errors'])}"
+                ),
+            )
+
         # Build OHLCV list for charting
         stock_data_list: list[StockDataPoint] = []
         if final_state.get("stock_price_data"):
