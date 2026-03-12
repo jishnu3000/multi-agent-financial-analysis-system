@@ -7,6 +7,7 @@ Functions:
     fetch_news          – Recent headlines via DuckDuckGo.
 """
 
+import time
 from typing import Any, Dict, List
 
 import yfinance as yf
@@ -24,6 +25,23 @@ def _yf_session() -> curl_requests.Session:
     (Render, Railway, etc.) that share IP ranges with known scrapers.
     """
     return curl_requests.Session(impersonate="chrome124")
+
+
+def _with_retry(fn, max_retries: int = 3):
+    """Call fn(), retrying on Yahoo Finance rate-limit (429) errors.
+
+    Uses exponential back-off: 5 s, 10 s, 20 s between attempts.
+    All other exceptions are re-raised immediately.
+    """
+    for attempt in range(max_retries):
+        try:
+            return fn()
+        except Exception as e:
+            msg = str(e).lower()
+            if any(kw in msg for kw in ("too many requests", "rate limit", "429")) and attempt < max_retries - 1:
+                time.sleep(5 * (2 ** attempt))  # 5 s, 10 s, 20 s
+                continue
+            raise
 
 
 def fetch_stock_data(ticker: str, period: str = "6mo") -> Dict[str, Any]:
@@ -44,14 +62,14 @@ def fetch_stock_data(ticker: str, period: str = "6mo") -> Dict[str, Any]:
     """
     try:
         stock = yf.Ticker(ticker, session=_yf_session())
-        hist = stock.history(period=period)
+        hist = _with_retry(lambda: stock.history(period=period))
 
         if hist.empty:
             raise ValueError(
                 f"Invalid ticker symbol '{ticker}'. Please check the ticker and try again."
             )
 
-        info = stock.info or {}
+        info = _with_retry(lambda: stock.info) or {}
         # hist.empty is the reliable validity signal; info can be sparse in newer yfinance
         if not info or len(info) < 3:
             raise ValueError(
@@ -102,7 +120,7 @@ def fetch_fundamentals(ticker: str) -> Dict[str, Any]:
     """
     try:
         stock = yf.Ticker(ticker, session=_yf_session())
-        info = stock.info
+        info = _with_retry(lambda: stock.info)
 
         if not info or len(info) < 3:
             raise ValueError(
