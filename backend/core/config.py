@@ -12,8 +12,8 @@ load_dotenv()
 
 
 class Settings:
-    # Google Gemini
-    GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "")
+    # HuggingFace
+    HF_API_KEY: str = os.getenv("HF_API_KEY", "")
 
     # MongoDB
     MONGODB_URL: str = os.getenv("MONGODB_URL")
@@ -41,5 +41,5 @@ class Settings:
 
 settings = Settings()
 
-if not settings.GOOGLE_API_KEY:
-    raise ValueError("GOOGLE_API_KEY environment variable not set")
+if not settings.HF_API_KEY:
+    raise ValueError("HF_API_KEY environment variable not set")
