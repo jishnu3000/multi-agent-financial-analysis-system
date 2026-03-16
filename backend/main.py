@@ -8,8 +8,8 @@ Project layout:
     services/   stock_data, technical, pdf_generator, workflow (agents)
     routers/    auth, analysis, health
 
-Environment variables (see .env.example):
-    GOOGLE_API_KEY, MONGODB_URL, JWT_SECRET_KEY, ALGORITHM,
+Environment variables:
+    OPENAI_API_KEY, OPENAI_MODEL, MONGODB_URL, JWT_SECRET_KEY, ALGORITHM,
     ACCESS_TOKEN_EXPIRE_MINUTES, HOST, PORT, CORS_ORIGINS
 
 Usage:

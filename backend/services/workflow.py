@@ -4,7 +4,7 @@ LangGraph multi-agent workflow.
 Three sequential agents:
   1. researcher_agent  – fetches market data & news.
   2. analyst_agent     – computes technical indicators.
-  3. team_lead_agent   – synthesises a final report via the Gemini LLM.
+    3. team_lead_agent   – synthesises a final report via the OpenAI LLM.
 
 Public symbol:
     agent_workflow – compiled LangGraph graph, ready for ``agent_workflow.invoke(state)``.
@@ -178,7 +178,7 @@ def analyst_agent(state: AgentState) -> AgentState:
 
 
 def team_lead_agent(state: AgentState) -> AgentState:
-    """Synthesise all collected data into a final markdown report via Gemini.
+    """Synthesise all collected data into a final markdown report via OpenAI.
 
     Populates: ``final_report``.
     Generates a plain-text fallback report on LLM failure.

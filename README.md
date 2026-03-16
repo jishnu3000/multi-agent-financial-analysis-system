@@ -9,7 +9,7 @@ An AI-powered stock analysis platform that uses a **LangGraph multi-agent pipeli
 - **3-Agent LangGraph Workflow**
   - **Researcher Agent** — fetches live OHLCV price data, fundamental metrics, and recent news
   - **Analyst Agent** — computes technical indicators (SMA-50, RSI-14, trend, support/resistance)
-  - **Team Lead Agent** — synthesises all data into a structured Markdown report via Google Gemini
+  - **Team Lead Agent** — synthesises all data into a structured Markdown report via OpenAI
 - **Interactive Price Chart** — 60-day OHLCV line chart with close, high, and low series
 - **PDF Export** — professionally formatted report generated with ReportLab
 - **Analysis History** — per-user archive of past reports with PDF download and delete
@@ -22,17 +22,17 @@ An AI-powered stock analysis platform that uses a **LangGraph multi-agent pipeli
 
 ### Backend
 
-| Component           | Technology                                   |
-| ------------------- | -------------------------------------------- |
-| API Framework       | FastAPI                                      |
-| Agent Orchestration | LangGraph                                    |
-| LLM                 | Google Gemini 2.5 Flash Lite (via LangChain) |
-| Stock Data          | yfinance                                     |
-| News                | DuckDuckGo Search (ddgs)                     |
-| PDF Generation      | ReportLab                                    |
-| Database            | MongoDB (pymongo)                            |
-| Authentication      | JWT (PyJWT) + bcrypt                         |
-| Server              | Uvicorn                                      |
+| Component           | Technology               |
+| ------------------- | ------------------------ |
+| API Framework       | FastAPI                  |
+| Agent Orchestration | LangGraph                |
+| LLM                 | OpenAI (via LangChain)   |
+| Stock Data          | yfinance                 |
+| News                | DuckDuckGo Search (ddgs) |
+| PDF Generation      | ReportLab                |
+| Database            | MongoDB (pymongo)        |
+| Authentication      | JWT (PyJWT) + bcrypt     |
+| Server              | Uvicorn                  |
 
 ### Frontend
 
@@ -57,7 +57,7 @@ industry-project/
 │   ├── core/
 │   │   ├── config.py           # Environment-based settings
 │   │   ├── database.py         # MongoDB client & collections
-│   │   ├── llm.py              # Gemini LLM singleton
+│   │   ├── llm.py              # OpenAI LLM singleton
 │   │   └── security.py         # Password hashing, JWT, auth dependency
 │   ├── models/
 │   │   ├── agent_state.py      # LangGraph shared state TypedDict
@@ -94,7 +94,7 @@ industry-project/
 - **Python 3.11+**
 - **Node.js 18+**
 - **MongoDB** — Atlas cluster or local instance
-- **Google API Key** — Gemini API key from [Google AI Studio](https://aistudio.google.com)
+- **OpenAI API Key** — create one in your OpenAI account
 
 ---
 
@@ -123,7 +123,8 @@ pip install -r requirements.txt
 Create a `.env` file in the `backend/` directory:
 
 ```env
-GOOGLE_API_KEY=your_gemini_api_key_here
+OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_MODEL=gpt-4o-mini
 MONGODB_URL=mongodb+srv://<user>:<password>@cluster0.xxxxx.mongodb.net/
 JWT_SECRET_KEY=your_strong_secret_key
 ALGORITHM=HS256
@@ -207,7 +208,8 @@ The test suite covers:
 
 | Variable                      | Required | Default                 | Description                     |
 | ----------------------------- | -------- | ----------------------- | ------------------------------- |
-| `GOOGLE_API_KEY`              | Yes      | —                       | Gemini API key                  |
+| `OPENAI_API_KEY`              | Yes      | —                       | OpenAI API key                  |
+| `OPENAI_MODEL`                | No       | `gpt-4o-mini`           | OpenAI model name               |
 | `MONGODB_URL`                 | Yes      | —                       | MongoDB connection string       |
 | `JWT_SECRET_KEY`              | Yes      | `fallback_secret_key`   | JWT signing secret              |
 | `ALGORITHM`                   | No       | `HS256`                 | JWT algorithm                   |

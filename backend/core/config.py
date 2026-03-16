@@ -12,8 +12,13 @@ load_dotenv()
 
 
 class Settings:
-    # Google Gemini
-    GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "")
+    # OpenAI
+    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
+    OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    OPENAI_TEMPERATURE: float = float(os.getenv("OPENAI_TEMPERATURE", 0.3))
+    OPENAI_MAX_OUTPUT_TOKENS: int = int(
+        os.getenv("OPENAI_MAX_OUTPUT_TOKENS", 2048)
+    )
 
     # MongoDB
     MONGODB_URL: str = os.getenv("MONGODB_URL")
@@ -40,6 +45,3 @@ class Settings:
 
 
 settings = Settings()
-
-if not settings.GOOGLE_API_KEY:
-    raise ValueError("GOOGLE_API_KEY environment variable not set")

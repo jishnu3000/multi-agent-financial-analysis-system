@@ -16,12 +16,12 @@ async def health_check():
     """Return service health status.
 
     Returns:
-        JSON with ``status``, ``timestamp``, and ``gemini_configured``.
+        JSON with ``status``, ``timestamp``, and ``openai_configured``.
     """
     return {
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
-        "gemini_configured": bool(settings.GOOGLE_API_KEY),
+        "openai_configured": bool(settings.OPENAI_API_KEY),
     }
 
 

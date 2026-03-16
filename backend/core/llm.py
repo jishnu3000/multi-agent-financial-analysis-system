@@ -1,16 +1,18 @@
-"""
-Gemini LLM singleton.
+"""core.llm
+
+OpenAI LLM singleton.
 
 Import ``llm`` wherever the language model is needed (currently only in
 the workflow service).
 """
 
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
+
 from core.config import settings
 
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.0-flash-lite",
-    google_api_key=settings.GOOGLE_API_KEY,
-    temperature=0.3,
-    max_output_tokens=8192,
+
+llm = ChatOpenAI(
+    model=settings.OPENAI_MODEL,
+    temperature=settings.OPENAI_TEMPERATURE,
+    max_tokens=settings.OPENAI_MAX_OUTPUT_TOKENS,
 )

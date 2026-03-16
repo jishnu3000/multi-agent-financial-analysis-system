@@ -58,7 +58,7 @@ def test_health_check_response_fields():
     Confirms all three mandatory fields are present with the correct types:
       • status             must equal "healthy"
       • timestamp          must be a non-empty string (ISO-8601 datetime)
-      • gemini_configured  must be a boolean (True when GOOGLE_API_KEY is set)
+            • openai_configured  must be a boolean (True when OPENAI_API_KEY is set)
     """
     response = client.get("/health")
 
@@ -69,8 +69,8 @@ def test_health_check_response_fields():
     assert isinstance(data["timestamp"], str) and data["timestamp"], (
         "timestamp must be a non-empty ISO-8601 string"
     )
-    assert isinstance(data["gemini_configured"], bool), (
-        "gemini_configured must be a boolean"
+    assert isinstance(data["openai_configured"], bool), (
+        "openai_configured must be a boolean"
     )
 
 
